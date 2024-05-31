@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+  <title>Exam page</title>
+</head>
+
+<style>
+  #main {
+    width: 80%;
+    height: 100px;
+
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  #main div {
+    width: 70px;
+    height: 70px;
+  }
+</style>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light " class="navbar navbar-light" style="background-color: #e3f2fd;">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Navbar</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="#">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">About us</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Contract</a>
+          </li>
+
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div id="main">
+    <div style="display: flex; flex-direction: column;align-items:right;">
+      <video id="video" style="width: 350px;" autoplay></video>
+
+      <canvas id="canvas" width="640px" height="480px"></canvas>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
+    integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
+    integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF"
+    crossorigin="anonymous"></script>
+  <script>
+    let tabSwitchCount = 0;
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        tabSwitchCount = tabSwitchCount + 1;
+        if (tabSwitchCount >= 3) {
+          alert("Suspicious behavior detected. Logging out.");
+
+          window.location.href = "/logout";
+        }
+        else {
+          alert("User switched back to this tab");
+
+        }
+      }
+    });
+  </script>
+
+  <!-- <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+
+    const constraints = {
+      audio: true,
+      video: {
+        width: { min: 1024, ideal: 1280, max: 1920 },
+        height: { min: 576, ideal: 720, max: 1080 }
+      }
+    }
+    async function startwebcam() {
+
+      try {
+        const steam = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = steam;
+        window.stream = steam;
+      }
+      catch (e) {
+        console.log(e.toString());
+      }
+    }
+
+    var context = canvas.getContext('2d');
+
+    startwebcam();
+</script> -->
+  <script src="https://docs.opencv.org/4.5.5/opencv.js"></script>
+  <script>
+
+    // Initialize variables
+    let videoStream;
+    let audioStream;
+    const videoElement = document.getElementById('video');
+
+    // Function to start video streaming
+    async function startVideo() {
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoElement.srcObject = videoStream;
+      } catch (err) {
+        console.error('Error accessing webcam:', err);
+      }
+    }
+
+    // Function to start audio streaming
+    async function startAudio() {
+      try {
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioContext = new AudioContext();
+        const audioSource = audioContext.createMediaStreamSource(audioStream);
+        const analyser = audioContext.createAnalyser();
+        audioSource.connect(analyser);
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        // Function to detect background noise
+        function detectBackgroundNoise() {
+          analyser.getByteTimeDomainData(dataArray);
+          let rms = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            rms += dataArray[i] ** 2;
+          }
+          rms = Math.sqrt(rms / bufferLength);
+          console.log('Background noise level:', rms);
+          if(rms>=127.90){
+            alert('Background noise is high!!!');
+          }
+        }
+
+        setInterval(detectBackgroundNoise, 1000); // Adjust the interval as needed
+
+      } catch (err) {
+        console.error('Error accessing microphone:', err);
+      }
+    }
+
+    // Start video and audio streams when the page loads
+    window.onload = function () {
+      startVideo();
+      startAudio();
+    };
+
+
+    function detectHeadMovement(prevFrame, currFrame, threshold) {
+      const prevMat = cv.matFromArray(prevFrame.height, prevFrame.width, cv.CV_8UC4, prevFrame.data);
+      const currMat = cv.matFromArray(currFrame.height, currFrame.width, cv.CV_8UC4, currFrame.data);
+
+      const prevGray = new cv.Mat();
+      const currGray = new cv.Mat();   
+      cv.cvtColor(prevMat, prevGray, cv.COLOR_RGBA2GRAY);
+      cv.cvtColor(currMat, currGray, cv.COLOR_RGBA2GRAY);
+
+      const diff = new cv.Mat();
+      cv.absdiff(prevGray, currGray, diff);
+
+      const movement = cv.countNonZero(diff);
+
+      prevGray.delete();
+      currGray.delete();
+      prevMat.delete();
+      currMat.delete();
+      diff.delete();
+    
+      return movement;
+    }
+
+    // Main loop for video processing
+    let previousFrame = null;
+    const threshold = 41400; // Define the threshold for head movement detection
+    function mainLoop() {
+      const videoCanvas = document.createElement('canvas');
+      const ctx = videoCanvas.getContext('2d');
+
+      // Draw video frame on canvas
+      ctx.drawImage(videoElement, 0, 0, videoCanvas.width, videoCanvas.height);
+      const currentFrame = ctx.getImageData(0, 0, videoCanvas.width, videoCanvas.height);
+
+      // Detect head movement
+      if (previousFrame) {
+        const headMovement = detectHeadMovement(previousFrame, currentFrame, threshold);
+        if (headMovement > threshold) {
+          console.log('Head movement detected!');
+        }
+      }
+
+      // Update previous frame
+      previousFrame = currentFrame;
+
+      requestAnimationFrame(mainLoop);
+    }
+
+    // Start main loop when video stream is loaded
+    videoElement.onloadedmetadata = function () {
+      mainLoop();
+    };
+
+  </script>
+</body>
+
+</html>
